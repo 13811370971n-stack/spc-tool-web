@@ -15,6 +15,7 @@ import io
 
 from core.xbar_r import calculate_xbar_r, XbarRResult
 from core.control_rules import get_all_violation_indices
+from core.llm_integration import load_config, enhance_interpretation
 
 dash.register_page(__name__, path="/xbar-r", name="Xbar-R", title="Xbar-R Control Chart")
 
@@ -119,11 +120,28 @@ layout = dbc.Container([
                     html.Pre(id="xbar-r-interpretation", style={"whiteSpace": "pre-wrap", "fontSize": "13px"}),
                 ),
             ], className="mt-3"),
+
+            # AI + Download
+            dbc.Card([
+                dbc.CardHeader("🤖 AI & 报告下载"),
+                dbc.CardBody([
+                    dbc.Button("🤖 AI 增强解读", id="xbar-r-ai-btn", color="secondary", className="w-100 mb-2"),
+                    dcc.Loading(html.Div(id="xbar-r-ai-output", className="small mt-2"), type="dot"),
+                    html.Hr(),
+                    html.Label("下载报告:"),
+                    dbc.ButtonGroup([
+                        dbc.Button("📄 Word", id="xbar-r-dl-word", color="success", size="sm", outline=True),
+                        dbc.Button("📊 Excel", id="xbar-r-dl-excel", color="success", size="sm", outline=True),
+                    ], className="w-100"),
+                    dcc.Download(id="xbar-r-download"),
+                ]),
+            ], className="mt-3"),
         ], width=9),
     ]),
 
     # Hidden store for data
     dcc.Store(id="xbar-r-data-store"),
+    dcc.Store(id="xbar-r-analysis-summary"),
 ], fluid=True)
 
 
@@ -187,6 +205,7 @@ def on_upload(contents, filename):
     Output("xbar-r-chart", "figure"),
     Output("xbar-r-results", "children"),
     Output("xbar-r-interpretation", "children"),
+    Output("xbar-r-analysis-summary", "data"),
     Input("xbar-r-analyze", "n_clicks"),
     State("xbar-r-data-store", "data"),
     State("xbar-r-data-cols", "value"),
@@ -199,7 +218,7 @@ def on_upload(contents, filename):
 def on_analyze(n_clicks, data_json, data_cols, subgroup_col, usl, lsl, tests):
     """Run Xbar-R analysis."""
     if not data_json or not data_cols:
-        return go.Figure(), "请先导入数据并选择列", "等待分析..."
+        return go.Figure(), "请先导入数据并选择列", "等待分析...", None
 
     df = pd.read_json(io.StringIO(data_json), orient="split")
 
@@ -240,10 +259,25 @@ def on_analyze(n_clicks, data_json, data_cols, subgroup_col, usl, lsl, tests):
         # Interpretation
         interpretation = _create_interpretation(result)
 
-        return fig, results_table, interpretation
+        # Summary for AI/download
+        import json
+        summary = {
+            "chart_type": "Xbar-R",
+            "in_control": bool(result.in_control),
+            "violations": {str(k): [i+1 for i in v[:10]] for k, v in result.xbar_violations.items()},
+            "limits": {"Xbar UCL": f"{result.xbar_limits.ucl:.4f}", "Xbar CL": f"{result.xbar_limits.cl:.4f}",
+                       "Xbar LCL": f"{result.xbar_limits.lcl:.4f}", "R UCL": f"{result.r_limits.ucl:.4f}", "R CL": f"{result.r_limits.cl:.4f}"},
+            "sigma_within": float(result.sigma_within),
+            "sigma_overall": float(result.sigma_overall),
+            "data_summary": f"n={result.subgroup_size}, k={result.num_subgroups}",
+        }
+        if result.capability:
+            summary["capability"] = {k: f"{v:.4f}" for k, v in result.capability.items()}
+
+        return fig, results_table, interpretation, json.dumps(summary)
 
     except Exception as e:
-        return go.Figure(), f"❌ 分析错误: {e}", ""
+        return go.Figure(), f"❌ 分析错误: {e}", "", None
 
 
 def _create_xbar_r_figure(result: XbarRResult) -> go.Figure:
@@ -389,3 +423,52 @@ def _create_interpretation(result: XbarRResult) -> str:
             lines.append(f"Cpk={cap['Cpk']:.3f}  Ppk={cap.get('Ppk','N/A'):.3f}")
 
     return "\n".join(lines)
+
+
+# ─── AI Callback ───────────────────────────────────────────────────────────────
+
+@callback(
+    Output("xbar-r-ai-output", "children"),
+    Input("xbar-r-ai-btn", "n_clicks"),
+    State("xbar-r-analysis-summary", "data"),
+    prevent_initial_call=True,
+)
+def on_ai(n_clicks, summary_json):
+    import json
+    if not summary_json:
+        return html.Div("⚠️ 请先运行分析", className="text-warning")
+    config = load_config()
+    if not config.enabled:
+        return html.Div("⚠️ AI 未启用。配置 ~/.spc-tool/llm_config.json", className="text-warning")
+    try:
+        summary = json.loads(summary_json)
+        result = enhance_interpretation(summary, config)
+        return html.Pre(result, style={"whiteSpace": "pre-wrap", "fontSize": "12px", "maxHeight": "300px", "overflowY": "auto"})
+    except Exception as e:
+        return html.Div(f"❌ AI 错误: {e}", className="text-danger")
+
+
+# ─── Download Callbacks ────────────────────────────────────────────────────────
+
+@callback(
+    Output("xbar-r-download", "data"),
+    Input("xbar-r-dl-word", "n_clicks"),
+    Input("xbar-r-dl-excel", "n_clicks"),
+    State("xbar-r-analysis-summary", "data"),
+    prevent_initial_call=True,
+)
+def on_download(n_word, n_excel, summary_json):
+    from dash import ctx
+    import json
+    if not summary_json:
+        return no_update
+    summary = json.loads(summary_json)
+    triggered = ctx.triggered_id
+
+    if triggered == "xbar-r-dl-word":
+        from pages.ai_download import _generate_word_download
+        return _generate_word_download(summary, "Xbar-R")
+    elif triggered == "xbar-r-dl-excel":
+        from pages.ai_download import _generate_excel_download
+        return _generate_excel_download(summary, "Xbar-R")
+    return no_update
