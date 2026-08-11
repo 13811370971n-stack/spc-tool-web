@@ -1,4 +1,4 @@
-"""Xbar-S Control Chart Page."""
+﻿"""Xbar-S Control Chart Page."""
 import dash
 from dash import html, dcc, callback, Input, Output, State, no_update, dash_table
 import dash_bootstrap_components as dbc
@@ -40,7 +40,7 @@ def up(c,f):
     if not c: return no_update,no_update,no_update
     d=base64.b64decode(c.split(",")[1])
     try:
-        df=pd.read_csv(io.BytesIO(d)) if f.endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.endswith(".xls") else "openpyxl")
+        df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
         nc=[c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
         return df.to_json(orient="split"),f"✓ {f}({len(df)}r)",[{"label":c,"value":c} for c in nc]
     except Exception as e: return no_update,f"❌{e}",no_update

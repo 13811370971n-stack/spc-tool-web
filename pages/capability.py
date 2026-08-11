@@ -1,4 +1,4 @@
-"""
+﻿"""
 Process Capability Page.
 """
 
@@ -62,7 +62,7 @@ def on_upload(contents, filename):
     if not contents: return no_update, no_update, no_update
     decoded = base64.b64decode(contents.split(",")[1])
     try:
-        df = pd.read_csv(io.BytesIO(decoded)) if filename.endswith(".csv") else pd.read_excel(io.BytesIO(decoded), engine="xlrd" if filename.endswith(".xls") else "openpyxl")
+        df = pd.read_csv(io.BytesIO(decoded)) if filename.lower().endswith(".csv") else pd.read_excel(io.BytesIO(decoded), engine="xlrd" if filename.lower().endswith(".xls") else "openpyxl")
         numeric = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
         return df.to_json(orient="split"), f"✓ {filename} ({len(df)} rows)", [{"label":c,"value":c} for c in numeric]
     except Exception as e:

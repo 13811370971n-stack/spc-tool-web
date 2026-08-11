@@ -1,4 +1,4 @@
-"""
+﻿"""
 Xbar-R Control Chart Page.
 Dash page with interactive Plotly charts.
 """
@@ -167,10 +167,10 @@ def on_upload(contents, filename):
     decoded = base64.b64decode(content_string)
 
     try:
-        if filename.endswith(".csv"):
+        if filename.lower().endswith(".csv"):
             df = pd.read_csv(io.BytesIO(decoded))
-        elif filename.endswith((".xls", ".xlsx")):
-            engine = "xlrd" if filename.endswith(".xls") else "openpyxl"
+        elif filename.lower().endswith((".xls", ".xlsx")):
+            engine = "xlrd" if filename.lower().endswith(".xls") else "openpyxl"
             df = pd.read_excel(io.BytesIO(decoded), engine=engine)
         else:
             return no_update, "❌ 不支持的文件格式", no_update, no_update, no_update

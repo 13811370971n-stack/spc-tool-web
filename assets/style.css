@@ -1,0 +1,293 @@
+/* McKinsey-Style Design System for SPC Tool Web */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ─── Color Variables ─── */
+:root {
+    --navy: #051C2C;
+    --blue: #0C2E4E;
+    --steel: #1E3A5F;
+    --teal: #00A0AF;
+    --gold: #C5A572;
+    --light: #F5F7FA;
+    --muted: #8B9DAF;
+    --border: #E2E8F0;
+    --white: #FFFFFF;
+}
+
+/* ─── Global ─── */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    background-color: var(--light) !important;
+    color: var(--navy) !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Navbar ─── */
+.navbar {
+    background-color: var(--navy) !important;
+    border-bottom: 3px solid var(--gold) !important;
+    box-shadow: 0 2px 12px rgba(5, 28, 44, 0.15);
+}
+
+.navbar-brand {
+    font-weight: 700 !important;
+    font-size: 1.3rem !important;
+    letter-spacing: -0.5px;
+}
+
+.nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: var(--gold) !important;
+}
+
+/* ─── Sidebar Navigation ─── */
+.nav-pills .nav-link {
+    color: var(--navy) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 2px;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.nav-pills .nav-link:hover {
+    background-color: var(--light) !important;
+    border-left-color: var(--teal);
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--navy) !important;
+    color: var(--white) !important;
+    border-left-color: var(--gold);
+    box-shadow: 0 2px 8px rgba(5, 28, 44, 0.2);
+}
+
+/* ─── Cards ─── */
+.card {
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+    background-color: var(--navy) !important;
+    color: var(--white) !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 0.6rem 1rem !important;
+    border-bottom: 2px solid var(--gold) !important;
+}
+
+.card-body {
+    padding: 1rem !important;
+}
+
+/* ─── Buttons ─── */
+.btn-primary {
+    background-color: var(--navy) !important;
+    border-color: var(--navy) !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
+}
+
+.btn-primary:hover {
+    background-color: var(--blue) !important;
+    border-color: var(--blue) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(5, 28, 44, 0.3);
+}
+
+.btn-secondary {
+    background-color: var(--teal) !important;
+    border-color: var(--teal) !important;
+    color: var(--white) !important;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+.btn-secondary:hover {
+    background-color: #008a96 !important;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background-color: var(--gold) !important;
+    border-color: var(--gold) !important;
+    color: var(--navy) !important;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+.btn-success:hover {
+    background-color: #b8985e !important;
+}
+
+/* ─── Form Controls ─── */
+.form-control, .form-select {
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--teal) !important;
+    box-shadow: 0 0 0 3px rgba(0, 160, 175, 0.15) !important;
+}
+
+/* Dash Dropdown */
+.Select-control {
+    border-radius: 8px !important;
+    border-color: var(--border) !important;
+}
+
+.Select-menu-outer {
+    border-radius: 8px !important;
+}
+
+/* ─── Data Tables ─── */
+.dash-table-container .dash-spreadsheet-container {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.dash-table-container .dash-header {
+    background-color: var(--navy) !important;
+    color: var(--white) !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+}
+
+/* ─── Graph/Chart containers ─── */
+.js-plotly-plot {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Headings ─── */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif !important;
+    color: var(--navy) !important;
+    letter-spacing: -0.5px;
+}
+
+h3 {
+    font-weight: 700 !important;
+    font-size: 1.5rem !important;
+    position: relative;
+    padding-left: 16px;
+}
+
+h3::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    width: 4px;
+    height: 24px;
+    background-color: var(--gold);
+    border-radius: 2px;
+}
+
+/* ─── Pre/Code (interpretation area) ─── */
+pre {
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.82rem !important;
+    line-height: 1.6;
+    color: var(--navy);
+    background-color: var(--light) !important;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem !important;
+}
+
+/* ─── Checklist ─── */
+.form-check-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--navy);
+}
+
+.form-check-input:checked {
+    background-color: var(--teal) !important;
+    border-color: var(--teal) !important;
+}
+
+/* ─── Loading spinner ─── */
+.dash-spinner {
+    border-color: var(--teal) !important;
+    border-top-color: transparent !important;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--muted);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--steel);
+}
+
+/* ─── Alert badges ─── */
+.alert-info {
+    background-color: rgba(0, 160, 175, 0.08) !important;
+    border-color: var(--teal) !important;
+    color: var(--navy) !important;
+    border-radius: 8px;
+}
+
+.alert-warning {
+    background-color: rgba(197, 165, 114, 0.1) !important;
+    border-color: var(--gold) !important;
+    color: var(--navy) !important;
+    border-radius: 8px;
+}
+
+/* ─── Sidebar fixed styling ─── */
+.border-end {
+    border-color: var(--border) !important;
+    background-color: var(--white) !important;
+}
+
+/* ─── Home page cards ─── */
+.card h5 {
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.3rem;
+}
+
+.card p {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
