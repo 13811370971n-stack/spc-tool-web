@@ -71,21 +71,24 @@ def on_analyze(n, data_json, defect_col, size_col, tests):
 
         fig = go.Figure()
         x = list(range(1, r.num_subgroups+1))
-        fig.add_trace(go.Scatter(x=x, y=r.statistic, mode="lines+markers", name="p", line=dict(color="#2C3E50"), marker=dict(size=5)))
+        fig.add_trace(go.Scatter(x=x, y=r.statistic, mode="lines+markers", name="p", line=dict(color="#051C2C"), marker=dict(size=5)))
 
         if r.constant_sample_size:
             fig.add_hline(y=r.ucl[0], line_dash="dash", line_color="red", annotation_text=f"UCL={r.ucl[0]:.4f}")
-            fig.add_hline(y=r.lcl[0], line_dash="dash", line_color="red", annotation_text=f"LCL={r.lcl[0]:.4f}")
+            if r.lcl[0] > 0.0001:
+                fig.add_hline(y=r.lcl[0], line_dash="dash", line_color="red", annotation_text=f"LCL={r.lcl[0]:.4f}")
         else:
             fig.add_trace(go.Scatter(x=x, y=r.ucl, mode="lines", name="UCL", line=dict(color="red", dash="dash", width=1)))
-            fig.add_trace(go.Scatter(x=x, y=r.lcl, mode="lines", name="LCL", line=dict(color="red", dash="dash", width=1)))
+            # Only draw LCL if it has meaningful non-zero values
+            if np.max(r.lcl) > 0.0001:
+                fig.add_trace(go.Scatter(x=x, y=r.lcl, mode="lines", name="LCL", line=dict(color="red", dash="dash", width=1)))
         fig.add_hline(y=r.cl, line_color="green", line_width=2, annotation_text=f"CL={r.cl:.4f}")
 
         if r.violations:
             vi = get_all_violation_indices(r.violations)
             fig.add_trace(go.Scatter(x=[x[i] for i in vi], y=[r.statistic[i] for i in vi], mode="markers", name="失控", marker=dict(color="red", size=10, symbol="circle-open", line=dict(width=2))))
 
-        fig.update_layout(title="P Chart", height=400, template="plotly_white", legend=dict(orientation="h", y=-0.2))
+        fig.update_layout(title="P Chart", height=400, template="mckinsey", legend=dict(orientation="h", y=-0.2))
         fig.update_xaxes(title_text="子组号")
         fig.update_yaxes(title_text="p (不合格品率)")
 

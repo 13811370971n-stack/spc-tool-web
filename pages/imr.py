@@ -75,7 +75,7 @@ def on_analyze(n, data_json, col, usl, lsl, tests):
         x_i = list(range(1, len(r.individuals)+1))
         x_mr = list(range(2, len(r.mr)+2))
 
-        fig.add_trace(go.Scatter(x=x_i, y=r.individuals, mode="lines+markers", name="I", line=dict(color="#2C3E50"), marker=dict(size=4)), row=1, col=1)
+        fig.add_trace(go.Scatter(x=x_i, y=r.individuals, mode="lines+markers", name="I", line=dict(color="#051C2C"), marker=dict(size=4)), row=1, col=1)
         fig.add_hline(y=r.i_limits.ucl, line_dash="dash", line_color="red", annotation_text=f"UCL={r.i_limits.ucl:.4f}", row=1, col=1)
         fig.add_hline(y=r.i_limits.cl, line_color="green", line_width=2, annotation_text=f"CL={r.i_limits.cl:.4f}", row=1, col=1)
         fig.add_hline(y=r.i_limits.lcl, line_dash="dash", line_color="red", annotation_text=f"LCL={r.i_limits.lcl:.4f}", row=1, col=1)
@@ -83,11 +83,11 @@ def on_analyze(n, data_json, col, usl, lsl, tests):
             vi = get_all_violation_indices(r.i_violations)
             fig.add_trace(go.Scatter(x=[x_i[i] for i in vi], y=[r.individuals[i] for i in vi], mode="markers", name="失控(I)", marker=dict(color="red", size=10, symbol="circle-open", line=dict(width=2))), row=1, col=1)
 
-        fig.add_trace(go.Scatter(x=x_mr, y=r.mr, mode="lines+markers", name="MR", line=dict(color="#2C3E50"), marker=dict(size=4)), row=2, col=1)
+        fig.add_trace(go.Scatter(x=x_mr, y=r.mr, mode="lines+markers", name="MR", line=dict(color="#051C2C"), marker=dict(size=4)), row=2, col=1)
         fig.add_hline(y=r.mr_limits.ucl, line_dash="dash", line_color="red", annotation_text=f"UCL={r.mr_limits.ucl:.4f}", row=2, col=1)
         fig.add_hline(y=r.mr_limits.cl, line_color="green", line_width=2, annotation_text=f"CL={r.mr_limits.cl:.4f}", row=2, col=1)
 
-        fig.update_layout(height=500, showlegend=True, legend=dict(orientation="h", y=-0.15), template="plotly_white")
+        fig.update_layout(height=500, showlegend=True, legend=dict(orientation="h", y=-0.15), template="mckinsey")
         fig.update_xaxes(title_text="观测号", row=2, col=1)
 
         table = dash_table.DataTable(

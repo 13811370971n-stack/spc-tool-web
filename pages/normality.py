@@ -82,12 +82,12 @@ def run(n,dj,col,alpha):
                 t=np.log(data) if abs(lam)<0.01 else (data**lam-1)/lam
                 _,p=stats.shapiro(t[:min(len(t),5000)])
                 pvals.append(p)
-            fig.add_trace(go.Scatter(x=lambdas,y=pvals,mode="lines",name="SW p-value",line=dict(color="#2C3E50")),row=2,col=1)
+            fig.add_trace(go.Scatter(x=lambdas,y=pvals,mode="lines",name="SW p-value",line=dict(color="#051C2C")),row=2,col=1)
             fig.add_hline(y=0.05,line_dash="dot",line_color="gray",row=2,col=1)
             best_lam=lambdas[np.argmax(pvals)]
             fig.add_vline(x=best_lam,line_dash="dash",line_color="red",annotation_text=f"λ={best_lam:.2f}",row=2,col=1)
 
-        fig.update_layout(height=500,template="plotly_white",showlegend=False)
+        fig.update_layout(height=500,template="mckinsey",showlegend=False)
         fig.update_xaxes(title_text="Theoretical Quantiles",row=1,col=1)
         fig.update_yaxes(title_text="Sample Quantiles",row=1,col=1)
         fig.update_xaxes(title_text="λ",row=2,col=1)

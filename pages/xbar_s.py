@@ -63,7 +63,7 @@ def run(n,dj,cols,tests):
         fig.add_hline(y=r.s_limits.ucl,line_dash="dash",line_color="red",annotation_text=f"UCL={r.s_limits.ucl:.4f}",row=2,col=1)
         fig.add_hline(y=r.s_limits.cl,line_color="green",line_width=2,row=2,col=1)
         if r.s_limits.lcl>0: fig.add_hline(y=r.s_limits.lcl,line_dash="dash",line_color="red",row=2,col=1)
-        fig.update_layout(height=500,template="plotly_white",showlegend=True,legend=dict(orientation="h",y=-0.15))
+        fig.update_layout(height=500,template="mckinsey",showlegend=True,legend=dict(orientation="h",y=-0.15))
         interp=f"{'✅ 受控' if r.in_control else '❌ 失控'}\nn={r.subgroup_size}, k={r.num_subgroups}\nσ_within={r.sigma_within:.6f}"
         return fig,interp
     except Exception as e: return go.Figure(),f"❌{e}"

@@ -55,13 +55,13 @@ def run(n,dj,col,lam,L):
         r=calculate_ewma(data,lambda_=lam or 0.2,L=float(L or 3.0))
         fig=go.Figure()
         x=list(range(1,r.num_observations+1))
-        fig.add_trace(go.Scatter(x=x,y=r.ewma,mode="lines+markers",name="EWMA",marker=dict(size=4),line=dict(color="#2C3E50")))
+        fig.add_trace(go.Scatter(x=x,y=r.ewma,mode="lines+markers",name="EWMA",marker=dict(size=4),line=dict(color="#051C2C")))
         fig.add_trace(go.Scatter(x=x,y=r.ucl,mode="lines",name="UCL",line=dict(color="red",dash="dash")))
         fig.add_trace(go.Scatter(x=x,y=r.lcl,mode="lines",name="LCL",line=dict(color="red",dash="dash")))
         fig.add_hline(y=r.cl,line_color="green",line_width=2,annotation_text=f"CL={r.cl:.4f}")
         if r.violations:
             fig.add_trace(go.Scatter(x=[x[i] for i in r.violations],y=[r.ewma[i] for i in r.violations],mode="markers",name="失控",marker=dict(color="red",size=10,symbol="circle-open",line=dict(width=2))))
-        fig.update_layout(title=f"EWMA (λ={r.lambda_:.2f}, L={r.L:.1f})",height=400,template="plotly_white",legend=dict(orientation="h",y=-0.2))
+        fig.update_layout(title=f"EWMA (λ={r.lambda_:.2f}, L={r.L:.1f})",height=400,template="mckinsey",legend=dict(orientation="h",y=-0.2))
         interp=f"{'✅ 受控' if r.in_control else '❌ 失控'}\nTarget={r.target:.4f}, σ={r.sigma:.4f}\n稳态UCL={r.ucl_ss:.4f}\n失控点数: {len(r.violations)}"
         return fig,interp
     except Exception as e: return go.Figure(),f"❌{e}"

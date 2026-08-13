@@ -100,7 +100,7 @@ def on_analyze(n, data_json, col, usl, lsl, target, sg_size, transform):
         if lsl: fig.add_vline(x=lsl, line_color="purple", line_width=2, annotation_text=f"LSL={lsl}")
         if target: fig.add_vline(x=target, line_color="green", line_dash="dot", annotation_text=f"Target={target}")
 
-        fig.update_layout(title="过程能力直方图", height=450, template="plotly_white",
+        fig.update_layout(title="过程能力直方图", height=450, template="mckinsey",
                           legend=dict(orientation="h", y=-0.2), xaxis_title="Value", yaxis_title="Density")
 
         # Results table

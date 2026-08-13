@@ -84,7 +84,7 @@ def u_upload(c,f):
 
 def _make_attr_chart(x, statistic, ucl, cl, lcl, constant_n, violations, title):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=statistic, mode="lines+markers", name="Data", marker=dict(size=5), line=dict(color="#2C3E50")))
+    fig.add_trace(go.Scatter(x=x, y=statistic, mode="lines+markers", name="Data", marker=dict(size=5), line=dict(color="#051C2C")))
     if constant_n:
         fig.add_hline(y=ucl[0], line_dash="dash", line_color="red", annotation_text=f"UCL={ucl[0]:.4f}")
         if lcl[0] > 0: fig.add_hline(y=lcl[0], line_dash="dash", line_color="red", annotation_text=f"LCL={lcl[0]:.4f}")
@@ -95,7 +95,7 @@ def _make_attr_chart(x, statistic, ucl, cl, lcl, constant_n, violations, title):
     if violations:
         vi = get_all_violation_indices(violations)
         fig.add_trace(go.Scatter(x=[x[i] for i in vi], y=[statistic[i] for i in vi], mode="markers", name="失控", marker=dict(color="red", size=10, symbol="circle-open", line=dict(width=2))))
-    fig.update_layout(title=title, height=400, template="plotly_white", legend=dict(orientation="h", y=-0.2))
+    fig.update_layout(title=title, height=400, template="mckinsey", legend=dict(orientation="h", y=-0.2))
     return fig
 
 

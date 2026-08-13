@@ -13,6 +13,9 @@ def create_app() -> Dash:
     import os
     pages_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "pages")
 
+    # Register McKinsey Plotly theme
+    import chart_theme  # noqa: F401
+
     app = Dash(
         __name__,
         use_pages=True,

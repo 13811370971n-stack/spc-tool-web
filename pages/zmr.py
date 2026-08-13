@@ -72,11 +72,11 @@ def run(n,dj,dcol,tcol):
         fig.add_hline(y=0,line_color="green",line_width=2,row=1,col=1)
         fig.add_hline(y=-3,line_dash="dash",line_color="red",annotation_text="LCL=-3",row=1,col=1)
 
-        fig.add_trace(go.Scatter(x=x_mr,y=r.z_mr,mode="lines+markers",name="Z-MR",marker=dict(size=4),line=dict(color="#2C3E50")),row=2,col=1)
+        fig.add_trace(go.Scatter(x=x_mr,y=r.z_mr,mode="lines+markers",name="Z-MR",marker=dict(size=4),line=dict(color="#051C2C")),row=2,col=1)
         fig.add_hline(y=r.zmr_limits.ucl,line_dash="dash",line_color="red",annotation_text=f"UCL={r.zmr_limits.ucl:.3f}",row=2,col=1)
         fig.add_hline(y=r.zmr_limits.cl,line_color="green",line_width=2,row=2,col=1)
 
-        fig.update_layout(height=500,template="plotly_white",legend=dict(orientation="h",y=-0.15))
+        fig.update_layout(height=500,template="mckinsey",legend=dict(orientation="h",y=-0.15))
 
         lines=[f"{'✅ 受控' if r.in_control else '❌ 失控'}",f"类型数: {r.num_types}, 观测数: {r.num_observations}",""]
         for t,p in r.type_params.items():

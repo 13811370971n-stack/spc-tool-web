@@ -294,7 +294,7 @@ def _create_xbar_r_figure(result: XbarRResult) -> go.Figure:
     # Data
     fig.add_trace(go.Scatter(
         x=x, y=result.xbar, mode="lines+markers",
-        name="Xbar", line=dict(color="#2C3E50", width=1.5),
+        name="Xbar", line=dict(color="#051C2C", width=1.5),
         marker=dict(size=5),
     ), row=1, col=1)
 
@@ -319,7 +319,7 @@ def _create_xbar_r_figure(result: XbarRResult) -> go.Figure:
     # ─── R Chart ───
     fig.add_trace(go.Scatter(
         x=x, y=result.r, mode="lines+markers",
-        name="R", line=dict(color="#2C3E50", width=1.5),
+        name="R", line=dict(color="#051C2C", width=1.5),
         marker=dict(size=5),
     ), row=2, col=1)
 
@@ -346,7 +346,7 @@ def _create_xbar_r_figure(result: XbarRResult) -> go.Figure:
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=-0.15),
         margin=dict(l=60, r=30, t=60, b=60),
-        template="plotly_white",
+        template="mckinsey",
     )
     fig.update_xaxes(title_text="子组号", row=2, col=1)
 
