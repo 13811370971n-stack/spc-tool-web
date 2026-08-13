@@ -23,6 +23,8 @@ layout = dbc.Container([
             dbc.Card([dbc.CardHeader("📂 数据导入"), dbc.CardBody([
                 dcc.Upload(id="cap-upload", children=dbc.Button("上传 CSV/Excel", color="primary", className="w-100"), multiple=False),
                 html.Div(id="cap-file-info", className="mt-2 text-muted small"),
+                html.Hr(className="my-2"),
+                dbc.Button("📋 加载Demo数据", id="cap-demo-btn", color="outline-secondary", size="sm", className="w-100"),
             ])], className="mb-3"),
             dbc.Card([dbc.CardHeader("列选择"), dbc.CardBody([
                 html.Label("数据列:"), dcc.Dropdown(id="cap-data-col", placeholder="选择数值列..."),
@@ -56,17 +58,35 @@ layout = dbc.Container([
 ], fluid=True)
 
 
-@callback(Output("cap-data-store","data"), Output("cap-file-info","children"), Output("cap-data-col","options"),
-          Input("cap-upload","contents"), State("cap-upload","filename"), prevent_initial_call=True)
-def on_upload(contents, filename):
-    if not contents: return no_update, no_update, no_update
-    decoded = base64.b64decode(contents.split(",")[1])
-    try:
-        df = pd.read_csv(io.BytesIO(decoded)) if filename.lower().endswith(".csv") else pd.read_excel(io.BytesIO(decoded), engine="xlrd" if filename.lower().endswith(".xls") else "openpyxl")
-        numeric = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-        return df.to_json(orient="split"), f"✓ {filename} ({len(df)} rows)", [{"label":c,"value":c} for c in numeric]
-    except Exception as e:
-        return no_update, f"❌ {e}", no_update
+@callback(Output("cap-data-store","data"), Output("cap-file-info","children"), Output("cap-data-col","options"), Output("cap-data-col","value"),
+          Output("cap-usl","value"), Output("cap-lsl","value"), Output("cap-transform","value"),
+          Input("cap-upload","contents"), Input("cap-demo-btn","n_clicks"), State("cap-upload","filename"), prevent_initial_call=True)
+def on_upload(contents, demo, filename):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    sel_col = None; usl_val = lsl_val = None; transform_val = "none"
+
+    if triggered == "cap-demo-btn":
+        from demo_loader import load_demo_data
+        dj, config = load_demo_data("capability")
+        if not dj: return no_update,"❌",no_update,no_update,no_update,no_update,no_update
+        df = pd.read_json(io.StringIO(dj), orient="split")
+        filename = config["file"]; sel_col = config["data_col"]
+        usl_val = config.get("usl"); lsl_val = config.get("lsl")
+        transform_val = config.get("transform", "none")
+    elif contents:
+        decoded = base64.b64decode(contents.split(",")[1])
+        try:
+            df = pd.read_csv(io.BytesIO(decoded)) if filename.lower().endswith(".csv") else pd.read_excel(io.BytesIO(decoded), engine="xlrd" if filename.lower().endswith(".xls") else "openpyxl")
+        except Exception as e:
+            return no_update, f"❌ {e}", no_update, no_update, no_update, no_update, no_update
+    else:
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+
+    numeric = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    info = f"✓ {filename} ({len(df)} rows)" + (" 📋 Demo" if triggered == "cap-demo-btn" else "")
+    return (df.to_json(orient="split"), info, [{"label":c,"value":c} for c in numeric],
+            sel_col or no_update, usl_val or no_update, lsl_val or no_update, transform_val)
 
 
 @callback(Output("cap-chart","figure"), Output("cap-results","children"), Output("cap-interpretation","children"),

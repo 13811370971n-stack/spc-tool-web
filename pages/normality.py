@@ -17,6 +17,8 @@ layout = dbc.Container([
             dbc.Card([dbc.CardHeader("📂 导入"), dbc.CardBody([
                 dcc.Upload(id="norm-upload", children=dbc.Button("上传", color="primary", className="w-100"), multiple=False),
                 html.Div(id="norm-info", className="mt-2 small"),
+                html.Hr(className="my-2"),
+                dbc.Button("📋 加载Demo数据", id="norm-demo-btn", color="outline-secondary", size="sm", className="w-100"),
             ])], className="mb-3"),
             dbc.Card([dbc.CardHeader("设置"), dbc.CardBody([
                 html.Label("数据列:"), dcc.Dropdown(id="norm-col", placeholder="选择..."),
@@ -34,16 +36,25 @@ layout = dbc.Container([
     dcc.Store(id="norm-store"),
 ], fluid=True)
 
-@callback(Output("norm-store","data"),Output("norm-info","children"),Output("norm-col","options"),
-          Input("norm-upload","contents"),State("norm-upload","filename"),prevent_initial_call=True)
-def up(c,f):
-    if not c: return no_update,no_update,no_update
-    d=base64.b64decode(c.split(",")[1])
-    try:
-        df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
-        nc=[c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-        return df.to_json(orient="split"),f"✓{f}({len(df)}r)",[{"label":c,"value":c} for c in nc]
-    except Exception as e: return no_update,f"❌{e}",no_update
+@callback(Output("norm-store","data"),Output("norm-info","children"),Output("norm-col","options"),Output("norm-col","value"),
+          Input("norm-upload","contents"),Input("norm-demo-btn","n_clicks"),State("norm-upload","filename"),prevent_initial_call=True)
+def up(c,demo,f):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    sel = None
+    if triggered == "norm-demo-btn":
+        from demo_loader import load_demo_data
+        dj, config = load_demo_data("normality")
+        if not dj: return no_update,"❌",no_update,no_update
+        df = pd.read_json(io.StringIO(dj), orient="split")
+        f = config["file"]; sel = config["data_col"]
+    elif c:
+        d=base64.b64decode(c.split(",")[1])
+        try: df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
+        except Exception as e: return no_update,f"❌{e}",no_update,no_update
+    else: return no_update,no_update,no_update,no_update
+    nc=[c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    return df.to_json(orient="split"),f"✓{f}({len(df)}r)"+(" 📋" if triggered=="norm-demo-btn" else ""),[{"label":c,"value":c} for c in nc],sel or no_update
 
 @callback(Output("norm-chart","figure"),Output("norm-results","children"),Output("norm-interp","children"),
           Input("norm-analyze","n_clicks"),State("norm-store","data"),State("norm-col","value"),State("norm-alpha","value"),prevent_initial_call=True)

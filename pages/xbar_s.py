@@ -17,6 +17,8 @@ layout = dbc.Container([
             dbc.Card([dbc.CardHeader("📂 数据导入"), dbc.CardBody([
                 dcc.Upload(id="xs-upload", children=dbc.Button("上传", color="primary", className="w-100"), multiple=False),
                 html.Div(id="xs-file-info", className="mt-2 small"),
+                html.Hr(className="my-2"),
+                dbc.Button("📋 加载Demo数据", id="xs-demo-btn", color="outline-secondary", size="sm", className="w-100"),
             ])], className="mb-3"),
             dbc.Card([dbc.CardHeader("列选择 (多选)"), dbc.CardBody([
                 dcc.Dropdown(id="xs-cols", multi=True, placeholder="选择测量列..."),
@@ -34,16 +36,26 @@ layout = dbc.Container([
     dcc.Store(id="xs-store"),
 ], fluid=True)
 
-@callback(Output("xs-store","data"),Output("xs-file-info","children"),Output("xs-cols","options"),
-          Input("xs-upload","contents"),State("xs-upload","filename"),prevent_initial_call=True)
-def up(c,f):
-    if not c: return no_update,no_update,no_update
-    d=base64.b64decode(c.split(",")[1])
-    try:
-        df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
-        nc=[c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-        return df.to_json(orient="split"),f"✓ {f}({len(df)}r)",[{"label":c,"value":c} for c in nc]
-    except Exception as e: return no_update,f"❌{e}",no_update
+@callback(Output("xs-store","data"),Output("xs-file-info","children"),Output("xs-cols","options"),Output("xs-cols","value"),
+          Input("xs-upload","contents"),Input("xs-demo-btn","n_clicks"),State("xs-upload","filename"),prevent_initial_call=True)
+def up(c,demo,f):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    sel_cols = None
+    if triggered == "xs-demo-btn":
+        from demo_loader import load_demo_data
+        dj, config = load_demo_data("xbar-s")
+        if not dj: return no_update,"❌",no_update,no_update
+        df = pd.read_json(io.StringIO(dj), orient="split")
+        f = config["file"]; sel_cols = config["data_cols"]
+    elif c:
+        d=base64.b64decode(c.split(",")[1])
+        try: df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
+        except Exception as e: return no_update,f"❌{e}",no_update,no_update
+    else: return no_update,no_update,no_update,no_update
+    nc=[c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    info = f"✓ {f}({len(df)}r)" + (" 📋" if triggered=="xs-demo-btn" else "")
+    return df.to_json(orient="split"),info,[{"label":c,"value":c} for c in nc],sel_cols or no_update
 
 @callback(Output("xs-chart","figure"),Output("xs-interp","children"),
           Input("xs-analyze","n_clicks"),State("xs-store","data"),State("xs-cols","value"),State("xs-tests","value"),prevent_initial_call=True)

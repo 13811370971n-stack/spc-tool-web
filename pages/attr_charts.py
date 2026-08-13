@@ -20,6 +20,8 @@ def _attr_layout(prefix, title, extra_fields=None):
                 dbc.Card([dbc.CardHeader("📂 导入"), dbc.CardBody([
                     dcc.Upload(id=f"{prefix}-upload", children=dbc.Button("上传", color="primary", className="w-100"), multiple=False),
                     html.Div(id=f"{prefix}-info", className="mt-2 small"),
+                    html.Hr(className="my-2"),
+                    dbc.Button("📋 加载Demo", id=f"{prefix}-demo-btn", color="outline-secondary", size="sm", className="w-100"),
                 ])], className="mb-3"),
                 dbc.Card([dbc.CardHeader("列映射"), dbc.CardBody(fields)], className="mb-3"),
                 dbc.Checklist(id=f"{prefix}-tests", options=[{"label":f" T{i}","value":i} for i in range(1,9)], value=[1,2,3,4], inline=True, className="small mb-3"),
@@ -55,31 +57,53 @@ dash.register_page("u_chart", path="/u-chart", name="U Chart", layout=u_layout)
 
 
 def _upload_cb(prefix):
-    @callback(Output(f"{prefix}-store","data"), Output(f"{prefix}-info","children"), Output(f"{prefix}-defect-col","options"),
-              Input(f"{prefix}-upload","contents"), State(f"{prefix}-upload","filename"), prevent_initial_call=True)
-    def cb(c,f):
-        if not c: return no_update,no_update,no_update
-        d=base64.b64decode(c.split(",")[1])
-        try:
-            df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
-            return df.to_json(orient="split"),f"✓{f}({len(df)}r)",[{"label":c,"value":c} for c in df.columns]
-        except Exception as e: return no_update,f"❌{e}",no_update
+    chart_map = {"np": "np-chart", "c": "c-chart"}
+
+    @callback(Output(f"{prefix}-store","data"), Output(f"{prefix}-info","children"), Output(f"{prefix}-defect-col","options"), Output(f"{prefix}-defect-col","value"),
+              Input(f"{prefix}-upload","contents"), Input(f"{prefix}-demo-btn","n_clicks"), State(f"{prefix}-upload","filename"), prevent_initial_call=True)
+    def cb(c, demo, f):
+        from dash import ctx
+        triggered = ctx.triggered_id
+        sel = None
+        if triggered == f"{prefix}-demo-btn":
+            from demo_loader import load_demo_data
+            dj, config = load_demo_data(chart_map.get(prefix, prefix+"-chart"))
+            if not dj: return no_update,"❌",no_update,no_update
+            df = pd.read_json(io.StringIO(dj), orient="split")
+            f = config["file"]; sel = config["defect_col"]
+        elif c:
+            d=base64.b64decode(c.split(",")[1])
+            try: df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
+            except Exception as e: return no_update,f"❌{e}",no_update,no_update
+        else: return no_update,no_update,no_update,no_update
+        info = f"✓{f}({len(df)}r)" + (" 📋" if triggered==f"{prefix}-demo-btn" else "")
+        return df.to_json(orient="split"),info,[{"label":c,"value":c} for c in df.columns],sel or no_update
     return cb
 
 _upload_cb("np")
 _upload_cb("c")
 
 # U chart needs extra dropdown
-@callback(Output("u-store","data"), Output("u-info","children"), Output("u-defect-col","options"), Output("u-size-col","options"),
-          Input("u-upload","contents"), State("u-upload","filename"), prevent_initial_call=True)
-def u_upload(c,f):
-    if not c: return no_update,no_update,no_update,no_update
-    d=base64.b64decode(c.split(",")[1])
-    try:
-        df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
-        opts=[{"label":c,"value":c} for c in df.columns]
-        return df.to_json(orient="split"),f"✓{f}({len(df)}r)",opts,opts
-    except Exception as e: return no_update,f"❌{e}",no_update,no_update
+@callback(Output("u-store","data"), Output("u-info","children"), Output("u-defect-col","options"), Output("u-defect-col","value"), Output("u-size-col","options"), Output("u-size-col","value"),
+          Input("u-upload","contents"), Input("u-demo-btn","n_clicks"), State("u-upload","filename"), prevent_initial_call=True)
+def u_upload(c, demo, f):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    sel_d = sel_s = None
+    if triggered == "u-demo-btn":
+        from demo_loader import load_demo_data
+        dj, config = load_demo_data("u-chart")
+        if not dj: return no_update,"❌",no_update,no_update,no_update,no_update
+        df = pd.read_json(io.StringIO(dj), orient="split")
+        f = config["file"]; sel_d = config["defect_col"]; sel_s = config["size_col"]
+    elif c:
+        d=base64.b64decode(c.split(",")[1])
+        try: df=pd.read_csv(io.BytesIO(d)) if f.lower().endswith(".csv") else pd.read_excel(io.BytesIO(d),engine="xlrd" if f.lower().endswith(".xls") else "openpyxl")
+        except Exception as e: return no_update,f"❌{e}",no_update,no_update,no_update,no_update
+    else: return no_update,no_update,no_update,no_update,no_update,no_update
+    opts=[{"label":c,"value":c} for c in df.columns]
+    info = f"✓{f}({len(df)}r)" + (" 📋" if triggered=="u-demo-btn" else "")
+    return df.to_json(orient="split"),info,opts,sel_d or no_update,opts,sel_s or no_update
 
 
 def _make_attr_chart(x, statistic, ucl, cl, lcl, constant_n, violations, title):
@@ -87,7 +111,7 @@ def _make_attr_chart(x, statistic, ucl, cl, lcl, constant_n, violations, title):
     fig.add_trace(go.Scatter(x=x, y=statistic, mode="lines+markers", name="Data", marker=dict(size=5), line=dict(color="#051C2C")))
     if constant_n:
         fig.add_hline(y=ucl[0], line_dash="dash", line_color="red", annotation_text=f"UCL={ucl[0]:.4f}")
-        if lcl[0] > 0: fig.add_hline(y=lcl[0], line_dash="dash", line_color="red", annotation_text=f"LCL={lcl[0]:.4f}")
+        fig.add_hline(y=lcl[0], line_dash="dash", line_color="red", annotation_text=f"LCL={lcl[0]:.4f}")
     else:
         fig.add_trace(go.Scatter(x=x, y=ucl, mode="lines", name="UCL", line=dict(color="red", dash="dash")))
         fig.add_trace(go.Scatter(x=x, y=lcl, mode="lines", name="LCL", line=dict(color="red", dash="dash")))

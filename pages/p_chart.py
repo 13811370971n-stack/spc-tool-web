@@ -94,13 +94,10 @@ def on_analyze(n, data_json, defect_col, size_col, tests):
 
         if r.constant_sample_size:
             fig.add_hline(y=r.ucl[0], line_dash="dash", line_color="red", annotation_text=f"UCL={r.ucl[0]:.4f}")
-            if r.lcl[0] > 0.0001:
-                fig.add_hline(y=r.lcl[0], line_dash="dash", line_color="red", annotation_text=f"LCL={r.lcl[0]:.4f}")
+            fig.add_hline(y=r.lcl[0], line_dash="dash", line_color="red", annotation_text=f"LCL={r.lcl[0]:.4f}")
         else:
             fig.add_trace(go.Scatter(x=x, y=r.ucl, mode="lines", name="UCL", line=dict(color="red", dash="dash", width=1)))
-            # Only draw LCL if it has meaningful non-zero values
-            if np.max(r.lcl) > 0.0001:
-                fig.add_trace(go.Scatter(x=x, y=r.lcl, mode="lines", name="LCL", line=dict(color="red", dash="dash", width=1)))
+            fig.add_trace(go.Scatter(x=x, y=r.lcl, mode="lines", name="LCL", line=dict(color="red", dash="dash", width=1)))
         fig.add_hline(y=r.cl, line_color="green", line_width=2, annotation_text=f"CL={r.cl:.4f}")
 
         if r.violations:
