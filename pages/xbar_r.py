@@ -60,6 +60,8 @@ layout = dbc.Container([
                         multiple=False,
                     ),
                     html.Div(id="xbar-r-file-info", className="mt-2 text-muted small"),
+                    html.Hr(className="my-2"),
+                    dbc.Button("📋 加载Demo数据", id="xbar-r-demo-btn", color="outline-secondary", size="sm", className="w-100"),
                 ]),
             ], className="mb-3"),
 
@@ -151,54 +153,69 @@ layout = dbc.Container([
     Output("xbar-r-data-store", "data"),
     Output("xbar-r-file-info", "children"),
     Output("xbar-r-data-cols", "options"),
+    Output("xbar-r-data-cols", "value"),
     Output("xbar-r-subgroup-col", "options"),
     Output("xbar-r-preview", "children"),
     Input("xbar-r-upload", "contents"),
+    Input("xbar-r-demo-btn", "n_clicks"),
     State("xbar-r-upload", "filename"),
     prevent_initial_call=True,
 )
-def on_upload(contents, filename):
-    """Handle file upload."""
-    if contents is None:
-        return no_update, no_update, no_update, no_update, no_update
+def on_upload(contents, demo_clicks, filename):
+    """Handle file upload or demo data load."""
+    from dash import ctx
+    triggered = ctx.triggered_id
 
-    # Decode uploaded file
-    content_type, content_string = contents.split(",")
-    decoded = base64.b64decode(content_string)
+    df = None
+    selected_cols = None
 
-    try:
-        if filename.lower().endswith(".csv"):
-            df = pd.read_csv(io.BytesIO(decoded))
-        elif filename.lower().endswith((".xls", ".xlsx")):
-            engine = "xlrd" if filename.lower().endswith(".xls") else "openpyxl"
-            df = pd.read_excel(io.BytesIO(decoded), engine=engine)
-        else:
-            return no_update, "❌ 不支持的文件格式", no_update, no_update, no_update
+    if triggered == "xbar-r-demo-btn":
+        # Load demo data
+        from demo_loader import load_demo_data
+        data_json, config = load_demo_data("xbar-r")
+        if data_json is None:
+            return no_update, "❌ Demo数据文件不存在", no_update, no_update, no_update, no_update
+        df = pd.read_json(io.StringIO(data_json), orient="split")
+        filename = config["file"]
+        selected_cols = config["data_cols"]
+    elif contents:
+        content_type, content_string = contents.split(",")
+        decoded = base64.b64decode(content_string)
+        try:
+            if filename.lower().endswith(".csv"):
+                df = pd.read_csv(io.BytesIO(decoded))
+            elif filename.lower().endswith((".xls", ".xlsx")):
+                engine = "xlrd" if filename.lower().endswith(".xls") else "openpyxl"
+                df = pd.read_excel(io.BytesIO(decoded), engine=engine)
+            else:
+                return no_update, "❌ 不支持的文件格式", no_update, no_update, no_update, no_update
+        except Exception as e:
+            return no_update, f"❌ 导入错误: {e}", no_update, no_update, no_update, no_update
+    else:
+        return no_update, no_update, no_update, no_update, no_update, no_update
 
-        # Store as JSON
-        data_json = df.to_json(date_format="iso", orient="split")
+    # Process dataframe
+    data_json = df.to_json(date_format="iso", orient="split")
+    info = f"✓ {filename} ({len(df)} rows × {len(df.columns)} cols)"
+    if triggered == "xbar-r-demo-btn":
+        info += " 📋 Demo"
 
-        # File info
-        info = f"✓ {filename} ({len(df)} rows × {len(df.columns)} cols)"
+    numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    col_options = [{"label": c, "value": c} for c in numeric_cols]
+    all_options = [{"label": c, "value": c} for c in df.columns]
 
-        # Column options
-        numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
-        col_options = [{"label": c, "value": c} for c in numeric_cols]
-        all_options = [{"label": c, "value": c} for c in df.columns]
+    preview = dash_table.DataTable(
+        data=df.head(5).to_dict("records"),
+        columns=[{"name": c, "id": c} for c in df.columns],
+        style_table={"overflowX": "auto", "fontSize": "12px"},
+        style_cell={"textAlign": "center", "padding": "4px"},
+        style_header={"fontWeight": "bold", "backgroundColor": "#f8f9fa"},
+    )
 
-        # Preview table
-        preview = dash_table.DataTable(
-            data=df.head(5).to_dict("records"),
-            columns=[{"name": c, "id": c} for c in df.columns],
-            style_table={"overflowX": "auto", "fontSize": "12px"},
-            style_cell={"textAlign": "center", "padding": "4px"},
-            style_header={"fontWeight": "bold", "backgroundColor": "#f8f9fa"},
-        )
+    # Auto-select demo columns or None
+    col_value = selected_cols if selected_cols else no_update
 
-        return data_json, info, col_options, all_options, preview
-
-    except Exception as e:
-        return no_update, f"❌ 导入错误: {e}", no_update, no_update, no_update
+    return data_json, info, col_options, col_value, all_options, preview
 
 
 @callback(

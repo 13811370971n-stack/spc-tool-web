@@ -22,6 +22,8 @@ layout = dbc.Container([
             dbc.Card([dbc.CardHeader("📂 数据导入"), dbc.CardBody([
                 dcc.Upload(id="p-upload", children=dbc.Button("上传 CSV/Excel", color="primary", className="w-100"), multiple=False),
                 html.Div(id="p-file-info", className="mt-2 text-muted small"),
+                html.Hr(className="my-2"),
+                dbc.Button("📋 加载Demo数据", id="p-demo-btn", color="outline-secondary", size="sm", className="w-100"),
             ])], className="mb-3"),
             dbc.Card([dbc.CardHeader("列映射"), dbc.CardBody([
                 html.Label("不合格品数列:"), dcc.Dropdown(id="p-defect-col", placeholder="选择..."),
@@ -42,17 +44,34 @@ layout = dbc.Container([
 ], fluid=True)
 
 
-@callback(Output("p-data-store","data"), Output("p-file-info","children"), Output("p-defect-col","options"), Output("p-size-col","options"),
-          Input("p-upload","contents"), State("p-upload","filename"), prevent_initial_call=True)
-def on_upload(contents, filename):
-    if not contents: return no_update, no_update, no_update, no_update
-    decoded = base64.b64decode(contents.split(",")[1])
-    try:
-        df = pd.read_csv(io.BytesIO(decoded)) if filename.lower().endswith(".csv") else pd.read_excel(io.BytesIO(decoded), engine="xlrd" if filename.lower().endswith(".xls") else "openpyxl")
-        opts = [{"label":c,"value":c} for c in df.columns]
-        return df.to_json(orient="split"), f"✓ {filename} ({len(df)} rows)", opts, opts
-    except Exception as e:
-        return no_update, f"❌ {e}", no_update, no_update
+@callback(Output("p-data-store","data"), Output("p-file-info","children"), Output("p-defect-col","options"), Output("p-defect-col","value"), Output("p-size-col","options"), Output("p-size-col","value"),
+          Input("p-upload","contents"), Input("p-demo-btn","n_clicks"), State("p-upload","filename"), prevent_initial_call=True)
+def on_upload(contents, demo_clicks, filename):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    sel_defect = sel_size = None
+
+    if triggered == "p-demo-btn":
+        from demo_loader import load_demo_data
+        data_json, config = load_demo_data("p-chart")
+        if not data_json: return no_update, "❌", no_update, no_update, no_update, no_update
+        df = pd.read_json(io.StringIO(data_json), orient="split")
+        filename = config["file"]
+        sel_defect = config["defect_col"]
+        sel_size = config["size_col"]
+    elif contents:
+        decoded = base64.b64decode(contents.split(",")[1])
+        try:
+            df = pd.read_csv(io.BytesIO(decoded)) if filename.lower().endswith(".csv") else pd.read_excel(io.BytesIO(decoded), engine="xlrd" if filename.lower().endswith(".xls") else "openpyxl")
+        except Exception as e:
+            return no_update, f"❌ {e}", no_update, no_update, no_update, no_update
+    else:
+        return no_update, no_update, no_update, no_update, no_update, no_update
+
+    data_json = df.to_json(orient="split")
+    opts = [{"label":c,"value":c} for c in df.columns]
+    info = f"✓ {filename} ({len(df)} rows)" + (" 📋 Demo" if triggered == "p-demo-btn" else "")
+    return data_json, info, opts, sel_defect or no_update, opts, sel_size or no_update
 
 
 @callback(Output("p-chart","figure"), Output("p-results","children"), Output("p-interpretation","children"),
