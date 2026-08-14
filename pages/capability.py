@@ -103,43 +103,115 @@ def on_analyze(n, data_json, col, usl, lsl, target, sg_size, transform):
                                  subgroup_size=int(sg_size) if sg_size and int(sg_size) > 1 else None,
                                  transform=transform or "none")
 
-        # Histogram + normal fit
+        # ─── Minitab-style Capability Chart ───
         fig = go.Figure()
-        fig.add_trace(go.Histogram(x=data, nbinsx=int(np.sqrt(len(data))), name="Data", opacity=0.6,
-                                    marker_color="#3498DB", histnorm="probability density"))
+
+        # Histogram
+        fig.add_trace(go.Histogram(x=data, nbinsx=int(np.sqrt(len(data))),
+                                    opacity=0.65, marker_color="#6BAED6",
+                                    histnorm="probability density", showlegend=False))
 
         # Normal fit curves
-        x_range = np.linspace(data.min() - 2*r.std_overall, data.max() + 2*r.std_overall, 200)
+        x_range = np.linspace(data.min() - 3*r.std_overall, data.max() + 3*r.std_overall, 300)
+        # Overall: solid dark red
         fig.add_trace(go.Scatter(x=x_range, y=stats.norm.pdf(x_range, r.mean, r.std_overall),
-                                  mode="lines", name=f"Overall (σ={r.std_overall:.4f})", line=dict(color="blue", width=2)))
+                                  mode="lines", name="Overall",
+                                  line=dict(color="#8B0000", width=2.5)))
+        # Within: dashed dark red
         fig.add_trace(go.Scatter(x=x_range, y=stats.norm.pdf(x_range, r.mean, r.std_within),
-                                  mode="lines", name=f"Within (σ={r.std_within:.4f})", line=dict(color="red", dash="dash", width=2)))
+                                  mode="lines", name="Within",
+                                  line=dict(color="#8B0000", dash="dash", width=2)))
 
-        # Spec limits
-        if usl: fig.add_vline(x=usl, line_color="purple", line_width=2, annotation_text=f"USL={usl}")
-        if lsl: fig.add_vline(x=lsl, line_color="purple", line_width=2, annotation_text=f"LSL={lsl}")
-        if target: fig.add_vline(x=target, line_color="green", line_dash="dot", annotation_text=f"Target={target}")
+        # Spec limits (vertical lines at top, Minitab style)
+        if lsl:
+            fig.add_vline(x=lsl, line_color="#000000", line_width=1.5, line_dash="dash")
+            fig.add_annotation(x=lsl, y=1.05, yref="paper", text="LSL", showarrow=False,
+                             font=dict(size=11, color="red"))
+        if target:
+            fig.add_vline(x=target, line_color="#008000", line_width=1.5, line_dash="dash")
+            fig.add_annotation(x=target, y=1.05, yref="paper", text="Target", showarrow=False,
+                             font=dict(size=11, color="green"))
+        if usl:
+            fig.add_vline(x=usl, line_color="#000000", line_width=1.5, line_dash="dash")
+            fig.add_annotation(x=usl, y=1.05, yref="paper", text="USL", showarrow=False,
+                             font=dict(size=11, color="red"))
 
-        fig.update_layout(title="过程能力直方图", height=450, template="mckinsey",
-                          legend=dict(orientation="h", y=-0.2), xaxis_title="Value", yaxis_title="Density")
+        fig.update_layout(
+            title=dict(text=f"Process Capability Report for {col}", font=dict(size=16)),
+            height=420, template="mckinsey",
+            legend=dict(x=0.85, y=0.95, font=dict(size=10)),
+            xaxis_title=col, yaxis_title="",
+            yaxis=dict(showticklabels=False),
+            margin=dict(t=80, b=40),
+        )
 
-        # Results table
-        rows = []
-        if r.cp is not None: rows.append({"指标": "Cp", "Within": f"{r.cp:.4f}", "Overall": f"{r.pp:.4f}" if r.pp else "-"})
-        if r.cpk is not None: rows.append({"指标": "Cpk", "Within": f"{r.cpk:.4f}", "Overall": f"{r.ppk:.4f}" if r.ppk else "-"})
-        if r.cpm is not None: rows.append({"指标": "Cpm", "Within": f"{r.cpm:.4f}", "Overall": "-"})
-        if r.ppm_within is not None: rows.append({"指标": "PPM", "Within": f"{r.ppm_within:.0f}", "Overall": f"{r.ppm_overall:.0f}" if r.ppm_overall else "-"})
+        # ─── Results: Minitab-style layout ───
+        # Process Data (left) + Capability (right)
+        process_data = html.Div([
+            html.H6("Process Data", className="fw-bold mb-2"),
+            html.Table([
+                html.Tr([html.Td("LSL", className="pe-3"), html.Td(f"{lsl}" if lsl else "—")]),
+                html.Tr([html.Td("Target"), html.Td(f"{target}" if target else "—")]),
+                html.Tr([html.Td("USL"), html.Td(f"{usl}" if usl else "—")]),
+                html.Tr([html.Td("Sample Mean"), html.Td(f"{r.mean:.4f}")]),
+                html.Tr([html.Td("Sample N"), html.Td(f"{r.n}")]),
+                html.Tr([html.Td("StDev(Overall)"), html.Td(f"{r.std_overall:.6f}")]),
+                html.Tr([html.Td("StDev(Within)"), html.Td(f"{r.std_within:.6f}")]),
+            ], className="small"),
+        ])
 
-        table = dash_table.DataTable(data=rows, columns=[{"name":c,"id":c} for c in ["指标","Within","Overall"]],
-                                     style_cell={"textAlign":"center","fontSize":"13px"},
-                                     style_header={"fontWeight":"bold","backgroundColor":"#3498DB","color":"white"},
-                                     style_data_conditional=[{"if":{"filter_query":'{指标} = "Cpk"'},"fontWeight":"bold"}])
+        overall_cap = html.Div([
+            html.H6("Overall Capability", className="fw-bold mb-2"),
+            html.Table([
+                html.Tr([html.Td("Pp", className="pe-3"), html.Td(f"{r.pp:.2f}" if r.pp else "—")]),
+                html.Tr([html.Td("PPL"), html.Td(f"{r.ppl:.2f}" if r.ppl else "—")]),
+                html.Tr([html.Td("PPU"), html.Td(f"{r.ppu:.2f}" if r.ppu else "—")]),
+                html.Tr([html.Td("Ppk"), html.Td(f"{r.ppk:.2f}" if r.ppk else "—")]),
+                html.Tr([html.Td("Cpm"), html.Td(f"{r.cpm:.2f}" if r.cpm else "—")]),
+            ], className="small"),
+        ])
+
+        within_cap = html.Div([
+            html.H6("Potential (Within) Capability", className="fw-bold mb-2"),
+            html.Table([
+                html.Tr([html.Td("Cp", className="pe-3"), html.Td(f"{r.cp:.2f}" if r.cp else "—")]),
+                html.Tr([html.Td("CPL"), html.Td(f"{r.cpl:.2f}" if r.cpl else "—")]),
+                html.Tr([html.Td("CPU"), html.Td(f"{r.cpu:.2f}" if r.cpu else "—")]),
+                html.Tr([html.Td("Cpk"), html.Td(f"{r.cpk:.2f}" if r.cpk else "—", className="fw-bold")]),
+            ], className="small"),
+        ])
+
+        # PPM Performance table
+        ppm_section = html.Div([
+            html.H6("Performance", className="fw-bold mb-2 mt-3"),
+            html.Table([
+                html.Thead(html.Tr([html.Th(""), html.Th("Observed"), html.Th("Exp. Overall"), html.Th("Exp. Within")])),
+                html.Tbody([
+                    html.Tr([html.Td("PPM < LSL"), html.Td(f"{np.sum(data < lsl)/len(data)*1e6:.0f}" if lsl else "—"),
+                             html.Td(f"{stats.norm.cdf(lsl, r.mean, r.std_overall)*1e6:.2f}" if lsl else "—"),
+                             html.Td(f"{stats.norm.cdf(lsl, r.mean, r.std_within)*1e6:.2f}" if lsl else "—")]),
+                    html.Tr([html.Td("PPM > USL"), html.Td(f"{np.sum(data > usl)/len(data)*1e6:.0f}" if usl else "—"),
+                             html.Td(f"{stats.norm.sf(usl, r.mean, r.std_overall)*1e6:.2f}" if usl else "—"),
+                             html.Td(f"{stats.norm.sf(usl, r.mean, r.std_within)*1e6:.2f}" if usl else "—")]),
+                    html.Tr([html.Td("PPM Total"),
+                             html.Td(f"{(np.sum(data < lsl) + np.sum(data > usl))/len(data)*1e6:.0f}" if (lsl and usl) else "—"),
+                             html.Td(f"{r.ppm_overall:.2f}" if r.ppm_overall else "—"),
+                             html.Td(f"{r.ppm_within:.2f}" if r.ppm_within else "—")]),
+                ]),
+            ], className="small table table-sm"),
+        ])
+
+        results_layout = dbc.Row([
+            dbc.Col(process_data, width=4),
+            dbc.Col([overall_cap, within_cap], width=4),
+            dbc.Col(ppm_section, width=4),
+        ], className="mt-3 p-3 border rounded bg-white")
 
         # Interpretation
         lines = []
         lines.append(f"n={r.n}, Mean={r.mean:.4f}")
         lines.append(f"σ_within={r.std_within:.6f}, σ_overall={r.std_overall:.6f}")
-        lines.append(f"正态性: {'✅ 通过' if r.normality.is_normal else '❌ 非正态'} (AD p={'通过' if r.normality.ad_is_normal else '未通过'}, SW p={r.normality.sw_p_value:.4f})")
+        lines.append(f"正态性: {'✅ 通过' if r.normality.is_normal else '❌ 非正态'} (SW p={r.normality.sw_p_value:.4f})")
         if r.transformation and r.transformation != "None":
             lines.append(f"变换: {r.transformation}" + (f", λ={r.lambda_boxcox:.4f}" if r.lambda_boxcox else ""))
         if r.cpk is not None:
@@ -148,6 +220,6 @@ def on_analyze(n, data_json, col, usl, lsl, target, sg_size, transform):
             elif r.cpk >= 1.33: lines.append("  → 🟢 良好 (Cpk ≥ 1.33)")
             elif r.cpk >= 1.0: lines.append("  → 🟡 勉强 (1.0 ≤ Cpk < 1.33)")
             else: lines.append("  → 🔴 不足 (Cpk < 1.0)，必须改进")
-        return fig, table, "\n".join(lines)
+        return fig, results_layout, "\n".join(lines)
     except Exception as e:
         return go.Figure(), f"❌ {e}", ""

@@ -86,7 +86,8 @@ def run(n,dj,dcol,tcol):
 
         fig.add_trace(go.Scatter(x=x_mr,y=r.z_mr,mode="lines+markers",name="Z-MR",marker=dict(size=4),line=dict(color="#051C2C")),row=2,col=1)
         fig.add_hline(y=r.zmr_limits.ucl,line_dash="dash",line_color="red",annotation_text=f"UCL={r.zmr_limits.ucl:.3f}",row=2,col=1)
-        fig.add_hline(y=r.zmr_limits.cl,line_color="green",line_width=2,row=2,col=1)
+        fig.add_hline(y=r.zmr_limits.cl,line_color="green",line_width=2,annotation_text=f"CL={r.zmr_limits.cl:.3f}",row=2,col=1)
+        fig.add_hline(y=0,line_dash="dash",line_color="red",annotation_text="LCL=0",row=2,col=1)
 
         fig.update_layout(height=500,template="mckinsey",legend=dict(orientation="h",y=-0.15))
 

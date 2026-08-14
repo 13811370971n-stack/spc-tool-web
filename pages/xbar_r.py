@@ -344,9 +344,8 @@ def _create_xbar_r_figure(result: XbarRResult) -> go.Figure:
                   annotation_text=f"UCL={result.r_limits.ucl:.4f}", row=2, col=1)
     fig.add_hline(y=result.r_limits.cl, line_color="green", line_width=2,
                   annotation_text=f"CL={result.r_limits.cl:.4f}", row=2, col=1)
-    if result.r_limits.lcl > 0:
-        fig.add_hline(y=result.r_limits.lcl, line_dash="dash", line_color="red",
-                      annotation_text=f"LCL={result.r_limits.lcl:.4f}", row=2, col=1)
+    fig.add_hline(y=result.r_limits.lcl, line_dash="dash", line_color="red",
+                  annotation_text=f"LCL={result.r_limits.lcl:.4f}", row=2, col=1)
 
     # R violations
     if result.r_violations:
